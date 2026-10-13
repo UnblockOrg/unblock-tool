@@ -6,7 +6,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class IngestionSettings(BaseSettings):
     slack_bot_token: str = Field(min_length=1)
-
+    slack_app_token: str = Field(min_length=1)
     slack_channel_ids: list[str] = Field(default_factory=list)
 
     slack_page_size: int = Field(default=200, ge=1, le=200)
