@@ -15,3 +15,7 @@ class ChunkTooLongError(RetrievalError):
 
 class EmbeddingAPIError(RetrievalError):
     """Raised when the embeddings provider API call fails after all retries."""
+
+
+class SynthesisAPIError(RetrievalError):
+    """Raised when the Gemini synthesis API call fails or returns an unexpected shape."""

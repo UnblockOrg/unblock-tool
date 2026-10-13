@@ -31,7 +31,7 @@ Slack
 ```
 ingestion/   Dev 1 — Slack backfill, pagination, thread grouping, noise filtering
 storage/     Dev 2 — DB access layer + schema migrations
-retrieval/   Dev 3 — embeddings, hybrid search, merge & rank, Claude synthesis
+retrieval/   Dev 3 — embeddings, hybrid search, merge & rank, Gemini synthesis
 bot/         Dev 4 — Slack app, /unblock command, Block Kit formatting, feedback
 shared/      Types used by more than one track (see shared/models.py) —
              changes here affect Dev 3 and Dev 4 directly, flag them to the team

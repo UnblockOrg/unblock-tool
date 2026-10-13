@@ -17,11 +17,13 @@ from retrieval.search import (
 	reciprocal_rank_fusion,
 	vector_search_db,
 )
+from retrieval.synthesis import GeminiSynthesisService
 
 __all__ = [
 	"EmbeddedThreadChunk",
 	"EmbeddingResult",
 	"EmbeddingService",
+	"GeminiSynthesisService",
 	"MergedSearchResult",
 	"RetrievalSearchService",
 	"SearchHit",

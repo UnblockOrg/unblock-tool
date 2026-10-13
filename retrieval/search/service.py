@@ -6,6 +6,7 @@ from retrieval.embeddings import EmbeddingService
 from retrieval.models import MergedSearchResult
 from retrieval.search.database import keyword_search_db, vector_search_db
 from retrieval.search.ranking import reciprocal_rank_fusion
+from retrieval.synthesis import GeminiSynthesisService
 from shared.models import Citation, SearchRequest, SearchResponse
 from storage.db import SessionLocal
 
@@ -19,9 +20,11 @@ class RetrievalSearchService:
     def __init__(
         self,
         embedding_service: EmbeddingService | None = None,
+        synthesis_service: GeminiSynthesisService | None = None,
         session_factory=SessionLocal,
     ) -> None:
         self.embedding_service = embedding_service or EmbeddingService()
+        self.synthesis_service = synthesis_service or GeminiSynthesisService()
         self.session_factory = session_factory
 
     def search(self, request: SearchRequest, limit: int = 5) -> SearchResponse:
@@ -52,16 +55,7 @@ class RetrievalSearchService:
         return relevant_results[:limit]
 
     def _build_answer(self, query: str, results: list[MergedSearchResult]) -> str:
-        if not results:
-            return "No strong match was found in the indexed Slack threads."
-        top_result = results[0]
-        chunk = top_result.document.chunk
-        snippet = _trim_snippet(chunk.text)
-        source = f" Source: {chunk.permalink}" if chunk.permalink else ""
-        return (
-            f"Top Slack match for '{query}' was found in #{chunk.channel}. "
-            f"{snippet}{source}"
-        )
+        return self.synthesis_service.synthesize(query, results)
 
 
 def _build_citations(results: list[MergedSearchResult]) -> list[Citation]:
@@ -78,10 +72,3 @@ def _build_citations(results: list[MergedSearchResult]) -> list[Citation]:
             )
         )
     return citations
-
-
-def _trim_snippet(text: str, max_length: int = 300) -> str:
-    normalized = " ".join(text.split())
-    if len(normalized) <= max_length:
-        return normalized
-    return normalized[: max_length - 3].rstrip() + "..."
