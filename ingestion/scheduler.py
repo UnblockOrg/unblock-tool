@@ -10,7 +10,7 @@ from collections.abc import Awaitable, Callable
 
 from dotenv import load_dotenv
 
-SCHEDULE_INTERVAL_SECONDS = 300
+SCHEDULE_INTERVAL_SECONDS = 60
 IngestChannel = Callable[[str], Awaitable[dict[str, int]]]
 
 logger = logging.getLogger(__name__)
