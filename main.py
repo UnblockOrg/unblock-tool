@@ -13,6 +13,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, selectinload
 from starlette.concurrency import run_in_threadpool
 
+from bot.slack_app import run_slack_bot
 from ingestion.clients.slack_client import SlackClient
 from ingestion.config import get_settings
 from ingestion.exceptions import SlackClientError
@@ -73,11 +74,13 @@ async def lifespan(_app: FastAPI):
             ingest_channel=_ingest_channel,
         )
     )
+    slack_bot_task = asyncio.create_task(run_slack_bot())
     try:
         yield
     finally:
         scheduled_task.cancel()
-        await asyncio.gather(scheduled_task, return_exceptions=True)
+        slack_bot_task.cancel()
+        await asyncio.gather(scheduled_task, slack_bot_task, return_exceptions=True)
 
 
 app = FastAPI(

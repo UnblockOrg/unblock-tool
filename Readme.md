@@ -104,6 +104,19 @@ confirm that the app was reinstalled after adding scopes, and confirm the bot
 was invited to the channel. Slack may return this error when the token cannot
 access a private channel as well as when the ID is invalid.
 
+### Slack `/unblock` command
+
+The API process also listens for `/unblock` through Socket Mode. In the Slack
+app settings, enable Socket Mode, create an app-level token with
+`connections:write`, and set it as `SLACK_APP_TOKEN`. Add the bot token scope
+`commands`, reinstall the app, and create the `/unblock` slash command under
+**Features → Slash Commands**. Socket Mode delivers the command over the app
+token connection, so no public Request URL is needed. Start the API with one
+worker as shown below; invoke `/unblock <question>` in Slack. The command
+responds ephemerally with the retrieval answer and source links. Index relevant
+channel threads first; the command cannot find discussions that have not been
+ingested.
+
 Run one backfill manually:
 
 ```sh

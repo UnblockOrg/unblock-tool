@@ -1,6 +1,7 @@
 """Turns ranked candidate threads into a cited, developer-facing answer via Gemini."""
 
 import logging
+import time
 
 import httpx
 
@@ -11,6 +12,8 @@ from retrieval.synthesis import config
 logger = logging.getLogger("retrieval.synthesis")
 
 NO_MATCH_ANSWER = "No strong match was found in the indexed Slack threads."
+_MAX_TRANSIENT_RETRIES = 2
+_RETRYABLE_STATUS_CODES = {408, 429, 500, 502, 503, 504}
 
 _SYSTEM_INSTRUCTIONS = (
     "You are Unblock, an assistant that helps engineers resolve issues using "
@@ -46,21 +49,50 @@ class GeminiSynthesisService:
         prompt = _build_prompt(query, results)
         url = f"{self.base_url}/models/{self.model}:generateContent"
 
-        try:
-            response = httpx.post(
-                url,
-                headers={
-                    "x-goog-api-key": self.api_key,
-                    "Content-Type": "application/json",
-                },
-                json={"contents": [{"parts": [{"text": prompt}]}]},
-                timeout=self.timeout,
-            )
-            response.raise_for_status()
-            payload = response.json()
-        except httpx.HTTPError as exc:
-            logger.exception("Gemini synthesis request failed")
-            raise SynthesisAPIError("Gemini synthesis request failed") from exc
+        for attempt in range(_MAX_TRANSIENT_RETRIES + 1):
+            try:
+                response = httpx.post(
+                    url,
+                    headers={
+                        "x-goog-api-key": self.api_key,
+                        "Content-Type": "application/json",
+                    },
+                    json={"contents": [{"parts": [{"text": prompt}]}]},
+                    timeout=self.timeout,
+                )
+                response.raise_for_status()
+                payload = response.json()
+                break
+            except httpx.HTTPError as exc:
+                status_code = (
+                    exc.response.status_code
+                    if isinstance(exc, httpx.HTTPStatusError)
+                    else None
+                )
+                retryable = status_code is None or status_code in _RETRYABLE_STATUS_CODES
+                if not retryable:
+                    logger.exception("Gemini synthesis request failed")
+                    raise SynthesisAPIError("Gemini synthesis request failed") from exc
+
+                if attempt < _MAX_TRANSIENT_RETRIES:
+                    delay = 2**attempt
+                    logger.warning(
+                        "Transient Gemini synthesis failure; retrying in %d seconds "
+                        "(attempt %d/%d, status=%s)",
+                        delay,
+                        attempt + 1,
+                        _MAX_TRANSIENT_RETRIES,
+                        status_code,
+                    )
+                    time.sleep(delay)
+                    continue
+
+                logger.warning(
+                    "Gemini synthesis unavailable after retries; returning the top "
+                    "retrieved Slack thread",
+                    exc_info=True,
+                )
+                return _fallback_answer(results)
 
         return _extract_text(payload)
 
@@ -78,6 +110,14 @@ def _build_prompt(query: str, results: list[MergedSearchResult]) -> str:
         f"{_SYSTEM_INSTRUCTIONS}\n\n"
         f"Developer query: {query}\n\n"
         f"Candidate threads:\n{candidates}"
+    )
+
+
+def _fallback_answer(results: list[MergedSearchResult]) -> str:
+    chunk = results[0].document.chunk
+    return (
+        "Gemini is temporarily unavailable. Here is the top matching indexed "
+        f"Slack thread:\n\n{chunk.text}"
     )
 
 

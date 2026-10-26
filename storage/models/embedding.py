@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING 
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import ForeignKey, Index, Text
