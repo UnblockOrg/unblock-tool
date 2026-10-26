@@ -14,7 +14,7 @@ except ImportError:  # pragma: no cover - python-dotenv is already in project de
 
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash")
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash-lite")
 GEMINI_API_BASE_URL = os.environ.get(
     "GEMINI_API_BASE_URL", "https://generativelanguage.googleapis.com/v1beta"
 )

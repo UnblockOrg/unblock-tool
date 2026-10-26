@@ -88,9 +88,9 @@ class GeminiSynthesisService:
                     continue
 
                 logger.warning(
-                    "Gemini synthesis unavailable after retries; returning the top "
-                    "retrieved Slack thread",
-                    exc_info=True,
+                    "Gemini synthesis unavailable after retries (status=%s); "
+                    "returning the top retrieved Slack thread",
+                    status_code,
                 )
                 return _fallback_answer(results)
 
