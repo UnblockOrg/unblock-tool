@@ -53,6 +53,12 @@ class GeminiSynthesisServiceTest(unittest.TestCase):
         self.assertEqual(answer, "Try SSO again.")
         self.assertEqual(post.call_count, 2)
         sleep.assert_called_once_with(1)
+        prompt = post.call_args.kwargs["json"]["contents"][0]["parts"][0]["text"]
+        self.assertIn("present them as separate alternatives", prompt)
+        self.assertIn("do not combine them", prompt)
+        self.assertIn("do not include URLs", prompt)
+        self.assertIn("How to distinguish them", prompt)
+        self.assertIn("one separate bullet per context", prompt)
 
     def test_returns_top_thread_after_transient_failures_are_exhausted(self):
         with (

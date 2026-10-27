@@ -38,13 +38,54 @@ class SlackCommandTest(IsolatedAsyncioTestCase):
             )
 
         ack.assert_awaited_once()
-        respond.assert_awaited_once_with(
-            "Re-authenticate the session.\n\nSources:\n- "
-            "<https://slack.example/thread-1|thread-1>",
-            response_type="ephemeral",
-        )
+        response_blocks = respond.await_args.kwargs["blocks"]
+        self.assertEqual(response_blocks[0]["type"], "header")
+        self.assertEqual(response_blocks[0]["text"]["text"], "Unblock response")
+        self.assertEqual(response_blocks[1]["text"]["text"], "Re-authenticate the session.")
+        self.assertIn("*Sources*", response_blocks[-1]["text"]["text"])
+        self.assertIn("|Thread 1>", response_blocks[-1]["text"]["text"])
+        self.assertEqual(respond.await_args.kwargs["response_type"], "ephemeral")
 
     def test_response_without_citations_contains_only_answer(self):
         response = SearchResponse(answer="No strong match was found.", citations=[])
 
-        self.assertEqual(format_search_response(response), "No strong match was found.")
+        formatted = format_search_response(response)
+
+        self.assertEqual(formatted["text"], "No strong match was found.")
+        self.assertEqual(len(formatted["blocks"]), 2)
+
+    def test_generated_sources_are_replaced_by_canonical_citations(self):
+        response = SearchResponse(
+            answer=(
+                "The payload field names do not match.\n\n"
+                "Sources:\n- [1791782341](https://example.test/old-source)"
+            ),
+            citations=[
+                Citation(
+                    thread_id="thread-1",
+                    permalink="https://slack.example/thread-1",
+                    snippet="The backend expected a different field name.",
+                )
+            ],
+        )
+
+        formatted = format_search_response(response)
+        answer_block = formatted["blocks"][1]["text"]["text"]
+        sources_block = formatted["blocks"][-1]["text"]["text"]
+
+        self.assertNotIn("old-source", answer_block)
+        self.assertEqual(sources_block.count("*Sources*"), 1)
+        self.assertIn("<https://slack.example/thread-1|Thread 1>", sources_block)
+
+    def test_markdown_headings_are_rendered_as_slack_bold_labels(self):
+        response = SearchResponse(
+            answer="### Possible causes\n- **Asset upload:** field mismatch.",
+            citations=[],
+        )
+
+        formatted = format_search_response(response)
+
+        self.assertEqual(
+            formatted["blocks"][1]["text"]["text"],
+            "*Possible causes*\n- *Asset upload:* field mismatch.",
+        )

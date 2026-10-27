@@ -18,9 +18,22 @@ _RETRYABLE_STATUS_CODES = {408, 429, 500, 502, 503, 504}
 _SYSTEM_INSTRUCTIONS = (
     "You are Unblock, an assistant that helps engineers resolve issues using "
     "resolved Slack threads. Answer only using the candidate threads below -- "
-    "never invent information that is not in them. Explicitly cite which "
-    "thread(s) you drew from by permalink. If none of the candidate threads "
-    "look like a good match for the query, say so plainly instead of guessing."
+    "never invent information that is not in them. Do not include URLs, "
+    "Markdown links, numbered source markers, or a Sources/References section; "
+    "the application adds source links separately. Format the answer for Slack "
+    "using concise paragraphs, bold labels, and short bullets; do not use "
+    "Markdown heading markers. For one supported cause, organize the answer "
+    "as Summary, Cause and fix, and How to verify. When candidates describe "
+    "multiple contexts for the same symptom, use Possible causes with one "
+    "separate bullet per context, then How to distinguish them. If a candidate "
+    "lacks evidence or a fix, state that explicitly. If candidate threads "
+    "describe different causes or fixes for the same symptom, present them as "
+    "separate alternatives, explain the evidence and context for each, and do "
+    "not combine them or claim one is certain without evidence. If the threads "
+    "do not provide enough context to choose between alternatives, say what "
+    "additional detail would distinguish them. If none of the candidate "
+    "threads look like a good match for the query, say so plainly instead of "
+    "guessing."
 )
 
 
@@ -42,7 +55,7 @@ class GeminiSynthesisService:
         self.timeout = timeout if timeout is not None else config.GEMINI_TIMEOUT_SECONDS
 
     def synthesize(self, query: str, results: list[MergedSearchResult]) -> str:
-        """Summarize the resolution from the top candidate threads, citing permalinks."""
+        """Summarize the resolution from the top candidate threads."""
         if not results:
             return NO_MATCH_ANSWER
 
